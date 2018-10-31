@@ -11,6 +11,7 @@ from nltk import ngrams
 import nltk
 import numpy as np
 from keras.utils import to_categorical
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 def get_positive_words():
     #taken from https://www.the-benefits-of-positive-thinking.com/list-of-positive-words.html
@@ -40,7 +41,9 @@ def get_raw_data(file_name):
         return None
     
     #dictionary of classes, the key is the sentence, the element is the class
-    raw_data = []
+    sentences = []
+    aspects = []
+    classes = []
     
     for i, line in enumerate(file):
         if i == 0:
@@ -51,11 +54,19 @@ def get_raw_data(file_name):
         #comes with new line character, so get rid of that
         if "\n" in output_class:
             output_class = output_class.replace("\n", "")
-        raw_data.append((sent, term, output_class))
+        sentences.append(sent)
+        aspects.append(term)
+        classes.append(output_class)
     
-    return raw_data
+    return sentences, aspects, classes
 
-def normalize(sent):
+def _remove_stop_words(sentence):
+    for sw in stop_words:
+        while sw in sentence:
+            sentence.remove(sw)
+    return sentence
+
+def normalize(sent, remove_stop_words = False):
     sent = sent.replace("[comma]", "")
     #get rid of punctuation
     translator = str.maketrans('', '', string.punctuation)
@@ -64,9 +75,9 @@ def normalize(sent):
     sent = nltk.word_tokenize(sent)
     
     #remove stop words
-    for sw in stop_words:
-        while sw in sent:
-            sent.remove(sw)
+    if(remove_stop_words):
+        sent = _remove_stop_words(sent)
+
             
     return sent
     
@@ -81,11 +92,11 @@ def get_grams_up_to(sentence, n):
 
     
 
-def get_ngram_counts(data, n):
+def get_ngram_counts(sentences, n):
     gram_count_dict = {}
     #do counting of words
-    for elt in data:
-        sentence = normalize(elt[0])
+    for sentence in sentences:
+        sentence = normalize(sentence)
         #unigrams are manditory
         sentence_grams = get_grams_up_to(sentence, n)
             
@@ -126,14 +137,25 @@ def retrieve_gram(gram):
     return phrase    
     
 def distance_function(distance):
-    return 0.8 ** distance
+    if distance == 0:
+        return 1
+    elif distance == 1:
+        return 0.9
+    elif distance == 2:
+        return 0.75
+    elif distance == 3:
+        return 0.5
+    elif distance == 4:
+        return 0.25
+    else:
+        return 1/distance
 
-def vectorize(sentence, aspect, word_dict, grams_up_to):
+def vectorize(sentence, aspect, word_dict, grams_up_to, remove_stop_words):
     #establish a vecotr of zeros, one for each n gram in the vocabulary
     sent_vect = np.zeros(len(word_dict))
     
     #same processing as grams to remove stop words and stuff, make sure it consistent
-    sentence = normalize(sentence)
+    sentence = normalize(sentence, remove_stop_words)
     sentence = retrieve_gram(sentence)
     
     #split sentence to left and right of aspect
@@ -174,24 +196,27 @@ def vectorize(sentence, aspect, word_dict, grams_up_to):
     return sent_vect
             
     
-def get_data(file_name, max_gram_length, min_gram_occurances):
-    data = get_raw_data(file_name) #list of sentence, aspect,
-    file = open('output.csv', 'w')
-    for elt in data:
-        file.write(elt[0] + "," + elt[1] + "," + elt[2] + "\n")
-    file.close
-    grams = get_ngram_counts(data, max_gram_length)
+def get_data_custom(file_name, max_gram_length, min_gram_occurances, remove_stop_words = False):
+    sentences, aspects, classes = get_raw_data(file_name) #list of sentence, aspect,
+    grams = get_ngram_counts(sentences, max_gram_length)
     grams = grams_with_count_at_least(grams, min_gram_occurances)
     pos_dict, word_dict = position_dictionary(grams)
     X = []
     y = []
-    for elt in data:
-        X.append(vectorize(elt[0], elt[1], word_dict, max_gram_length))
-        y.append(elt[2])
+    for i in range(len(sentences)):
+        X.append(vectorize(sentences[i], aspects[i], word_dict, max_gram_length, remove_stop_words))
+        y.append(classes[i])
     
     X = np.array(X)
     y = np.array(y)
     return X, y
+
+def get_data_tfidf(file_name):
+    sentences, aspects, classes = get_raw_data(file_name)
+    vectorizer = TfidfVectorizer()
+    X = vectorizer.fit_transform(sentences)
+    return X.toarray(), np.array(classes)
+    
     
 def one_hot_encode(y):
     y = y.astype(int)
