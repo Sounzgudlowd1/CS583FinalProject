@@ -6,7 +6,8 @@ Created on Fri Oct 26 16:03:55 2018
 """
 
 stop_words = [
-        "a",
+"[comma]",
+"a",
 "about",
 "above",
 "after",

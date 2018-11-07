@@ -11,23 +11,24 @@ from keras.layers import Dense
 from keras.optimizers import SGD
 from keras.regularizers import l1, l2, l1_l2
 import numpy as np
-from get_data import get_data_custom, one_hot_encode
+from get_data import get_data_custom, one_hot_encode, unencode
+from Score import Score, average_scores
 
 
 np.random.seed(7)
 #file name, max gram length, min occurances of gram, remove stop words(T/F)
 #X, y = get_data_custom('data-1_train.csv', 2, 0, False) results in roughly 72% accuracy--not bad!
-X, y = get_data_custom('data-1_train.csv', 2, 3, False)
-y = one_hot_encode(y)
+X, y = get_data_custom('data-1_train.csv', 2, 0, False)
+y_encode = one_hot_encode(y)
 
 
 kf = KFold(n_splits=10)
 kf.get_n_splits(X)
-accuracies = []
+scores = []
 
 for train_index, test_index in kf.split(X):
     X_train, X_test = X[train_index], X[test_index]
-    y_train, y_test = y[train_index], y[test_index]
+    y_train, y_test = y_encode[train_index], y[test_index]
        
     ffnn = Sequential()
     ffnn.add(Dense(8, input_dim = len(X_train[0]), activation = 'relu', kernel_regularizer = l1(0)))
@@ -43,9 +44,12 @@ for train_index, test_index in kf.split(X):
     print("Training on " + str(len(X[0])) + " features...")
     ffnn.fit(x = X_train, y = y_train, epochs = 50, batch_size = 50)
     print("Done training...")
-    accuracies.append(ffnn.evaluate(X_test, y_test)[1])
+    y_pred = ffnn.predict(X_test)
+    y_pred = unencode(y_pred)
+    scores.append(Score(y_test, y_pred))
 
-for acc in accuracies:
-    print(acc)
-    
-print("Average accuracy: " + str(np.average(accuracies)))
+for score in scores:
+    print(score.accuracy)
+
+avg_score = average_scores(scores)
+print("Average accuracy: " + str(avg_score.accuracy))

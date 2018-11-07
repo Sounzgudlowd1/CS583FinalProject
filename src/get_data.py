@@ -5,7 +5,7 @@ Created on Sun Oct 14 15:36:35 2018
 @author: Erik
 """
 
-from stop_words import stop_words
+from stop_words import stop_words as cust_stop_words
 import string
 from nltk import ngrams
 import nltk
@@ -61,7 +61,7 @@ def get_raw_data(file_name):
     return sentences, aspects, classes
 
 def _remove_stop_words(sentence):
-    for sw in stop_words:
+    for sw in cust_stop_words:
         while sw in sentence:
             sentence.remove(sw)
     return sentence
@@ -137,18 +137,7 @@ def retrieve_gram(gram):
     return phrase    
     
 def distance_function(distance):
-    if distance == 0:
-        return 1
-    elif distance == 1:
-        return 0.9
-    elif distance == 2:
-        return 0.75
-    elif distance == 3:
-        return 0.5
-    elif distance == 4:
-        return 0.25
-    else:
-        return 1/distance
+    return 1/(distance + 1)
 
 def vectorize(sentence, aspect, word_dict, grams_up_to, remove_stop_words):
     #establish a vecotr of zeros, one for each n gram in the vocabulary
@@ -213,7 +202,7 @@ def get_data_custom(file_name, max_gram_length, min_gram_occurances, remove_stop
 
 def get_data_tfidf(file_name):
     sentences, aspects, classes = get_raw_data(file_name)
-    vectorizer = TfidfVectorizer()
+    vectorizer = TfidfVectorizer(ngram_range = (1, 2), stop_words = cust_stop_words)
     X = vectorizer.fit_transform(sentences)
     return X.toarray(), np.array(classes)
     
@@ -223,4 +212,8 @@ def one_hot_encode(y):
     y += 1 #set to 0, 1, 2 instead of -1, 0, 1
     return to_categorical(y)
     
+def unencode(y):
+    y = np.argmax(y, axis = 1)
+    y -= 1
+    return y.astype(str)
 

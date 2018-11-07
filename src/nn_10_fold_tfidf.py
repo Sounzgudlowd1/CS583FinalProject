@@ -21,7 +21,7 @@ from get_data import get_data_tfidf, one_hot_encode
 
 
 #np.random.seed(7)
-X, y = get_data_tfidf('data-2_train.csv')
+X, y = get_data_tfidf('data-1_train.csv')
 y = one_hot_encode(y)
 
 
