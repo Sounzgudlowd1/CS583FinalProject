@@ -11,20 +11,21 @@ from keras.layers import Dense
 from keras.optimizers import SGD
 from keras.regularizers import l1, l2, l1_l2
 import numpy as np
-from get_data import get_data_custom, one_hot_encode, unencode
+from get_data import get_data_custom, get_data_tfidf, one_hot_encode, unencode
 from Score import Score, average_scores
 
 
 np.random.seed(7)
 #file name, max gram length, min occurances of gram, remove stop words(T/F)
 #X, y = get_data_custom('data-1_train.csv', 2, 0, False) results in roughly 72% accuracy--not bad!
-X, y = get_data_custom('data-1_train.csv', 2, 0, False)
+X, y = get_data_tfidf('data-1_train.csv')
 y_encode = one_hot_encode(y)
 
 
 kf = KFold(n_splits=10)
 kf.get_n_splits(X)
-scores = []
+train_scores = []
+test_scores = []
 
 for train_index, test_index in kf.split(X):
     X_train, X_test = X[train_index], X[test_index]
@@ -44,12 +45,26 @@ for train_index, test_index in kf.split(X):
     print("Training on " + str(len(X[0])) + " features...")
     ffnn.fit(x = X_train, y = y_train, epochs = 50, batch_size = 50)
     print("Done training...")
+    
+    #get test scores
     y_pred = ffnn.predict(X_test)
     y_pred = unencode(y_pred)
-    scores.append(Score(y_test, y_pred))
-
-for score in scores:
+    test_scores.append(Score(y_test, y_pred))
+    
+    #get train scores
+    y_pred = ffnn.predict(X_train)
+    y_pred = unencode(y_pred)
+    train_scores.append(Score(y_train, y_pred))
+    
+for score in test_scores:
     print(score.accuracy)
 
-avg_score = average_scores(scores)
-print("Average accuracy: " + str(avg_score.accuracy))
+avg_test_score = average_scores(test_scores)
+print("Average test accuracy: " + str(avg_test_score.accuracy))
+
+
+for score in train_scores:
+    print(score.accuracy)
+
+avg_train_score = average_scores(train_scores)
+print("Average test accuracy: " + str(avg_train_score.accuracy))

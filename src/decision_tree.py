@@ -35,3 +35,8 @@ for train_index, test_index in kf.split(X):
     
     
 average_score = average_scores(test_scores)
+
+for score in test_scores:
+    print(score.accuracy)
+    
+print("average accuracy: " + str(average_score.accuracy))

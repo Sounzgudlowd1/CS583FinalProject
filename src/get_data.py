@@ -15,7 +15,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 def get_positive_words():
     #taken from https://www.the-benefits-of-positive-thinking.com/list-of-positive-words.html
-    file = open("PositiveWords.csv", 'r')
+    file = open("../data/PositiveWords.csv", 'r')
     positive_words = []
     for word in file:
         #strip off new line character at the end
@@ -24,7 +24,7 @@ def get_positive_words():
 
 def get_negative_words():
     #https://www.enchantedlearning.com/wordlist/negativewords.shtml
-    file = open("NegativeWords.csv", 'r')
+    file = open("../data/NegativeWords.csv", 'r')
     negative_words = []
     for word in file:
         if word != "":
